@@ -12,7 +12,7 @@ class Staff(Employee):
     def __str__(self):
         return f"{self.name} (capacity {self.capacity}, charm {self.charm}, wage ${self.wage})"
 from collections import deque
-from config import (
+from game.config import (
     STARTING_CASH,
     WAGE_MULTIPLIER,
     MAX_AD_BUDGET,

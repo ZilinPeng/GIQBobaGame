@@ -1,3 +1,6 @@
-import random
+from PyQt6.QtWidgets import QApplication, QLabel
 
-from Employee import Employee 
+app = QApplication([])
+label = QLabel("PyQt6 is working!")
+label.show()
+app.exec()

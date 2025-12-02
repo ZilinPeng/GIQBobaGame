@@ -1,6 +1,6 @@
 import random
 from models.staff import Staff
-from config import WAGE_MULTIPLIER
+from game.config import WAGE_MULTIPLIER
 
 NAMES = ["Alex", "Jordan", "Casey", "Riley", "Taylor",
          "Morgan", "Jamie", "Avery", "Sam", "Devon"]

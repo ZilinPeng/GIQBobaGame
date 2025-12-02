@@ -1,4 +1,4 @@
-from config import *
+from game.config import *
 from models.venue import Stand
 from models.drink import Drink
 from models.customer import Customer

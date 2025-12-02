@@ -36,7 +36,7 @@ def process_turn(game):
         served += 1
 
     # 2. PATIENCE DECAY — THE PART THAT BROKE YOUR GAME
-    new_line = deque()     # <-- FIX: MUST be deque()
+    new_line = deque()     
 
     for cust in game.venue.line:
         cust.patience -= 1
@@ -45,7 +45,7 @@ def process_turn(game):
         else:
             lostPatience += 1
 
-    game.venue.line = new_line  # <-- FIX: Do NOT assign list
+    game.venue.line = new_line  
 
     return served, lostStock, lostPatience
 

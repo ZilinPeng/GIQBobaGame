@@ -10,7 +10,7 @@ from threading import Thread, Event
 from time import sleep
 import random
 import textwrap
-from config import WAGE_MULTIPLIER, MAX_QUEUE_DISPLAY
+from game.config import WAGE_MULTIPLIER, MAX_QUEUE_DISPLAY
 
 from GIQBobaGame import Game, TURNS_PER_DAY
 from GIQBobaGame import Stand, Truck, Store  # for upgrade dialog
