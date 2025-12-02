@@ -1,6 +1,6 @@
 import random
 import math
-from Employee import Employee
+from models.Employee import Employee
 
 # --- Staff subclass with charm trait ---
 class Staff(Employee):
@@ -30,6 +30,7 @@ def poisson(lam: float) -> int:
         k += 1
         p *= random.random()
     return k - 1
+
 class Ingredient:
     def __init__(self, name, unit_cost, shelf_life, addedDesirability):
         self.name = name 
@@ -636,9 +637,6 @@ class Game:
         print("Running multi‑day test...")
         g.run_days(days, turns)
     
-
-
-
 
 # --- Quick per‑turn UI demo ---
 def demo_turn_ui(turns: int = TURNS_PER_DAY):
