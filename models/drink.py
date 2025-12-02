@@ -1,26 +1,23 @@
 from .ingredient import Ingredient
 from utils.constants import CUP_REGULAR, CUP_TALL, STRAW, SEAL
+from .recipe import Recipe
 
 class Drink:
-    def __init__(self, name, recipe, basePrice, baseDesirability, size="regular"):
+    """
+    Represents a drink sold in the shop.
+    Uses a Recipe object for all ingredient logic.
+    """
+    def __init__(self, name, recipe: dict, basePrice, baseDesirability, size = 'regular'):
         self.name = name
-        self.recipe = recipe
         self.basePrice = basePrice
-        self.size = size
+        self.recipe = Recipe(recipe, size)
 
-        # Add packaging automatically
-        cup = CUP_TALL if size == "tall" else CUP_REGULAR
-        recipe[cup] = recipe.get(cup, 0) + 1
-        recipe[STRAW] = recipe.get(STRAW, 0) + 1
-        recipe[SEAL] = recipe.get(SEAL, 0) + 1
+        # Calculate final desirability
+        self.desirability = baseDesirability + self.recipe.total_desirability()
 
-        # Calculate desirability
-        self.desirability = baseDesirability
-        for ing, qty in recipe.items():
-            self.desirability += ing.addedDesirability * qty
-
+        # Add size bonus
         if size == "tall":
-            self.desirability += 0.30  # tall size bonus
+            self.desirability += 0.30
 
-    def setPrice(self, price):
+    def setPrice(self, price: float):
         self.basePrice = price
