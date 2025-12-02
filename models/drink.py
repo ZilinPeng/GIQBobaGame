@@ -1,5 +1,5 @@
-from ingredient import Ingredient
-from constants import CUP_REGULAR, CUP_TALL, STRAW, SEAL
+from .ingredient import Ingredient
+from utils.constants import CUP_REGULAR, CUP_TALL, STRAW, SEAL
 
 class Drink:
     def __init__(self, name, recipe, basePrice, baseDesirability, size="regular"):
