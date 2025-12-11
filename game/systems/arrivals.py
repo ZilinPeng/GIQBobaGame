@@ -1,6 +1,6 @@
 import random
-from utils.math_utils import poisson
-from models.customer import Customer
+from ..utils.math_utils import poisson
+from ..models.customer import Customer
 
 def generate_arrivals(venue, multiplier):
     lam = venue.footTraffic * (1 + multiplier)

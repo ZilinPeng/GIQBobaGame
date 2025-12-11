@@ -1,5 +1,5 @@
 from .ingredient import Ingredient
-from utils.constants import CUP_REGULAR, CUP_TALL, STRAW, SEAL
+from ..utils.constants import CUP_REGULAR, CUP_TALL, STRAW, SEAL
 from .recipe import Recipe
 
 class Drink:

@@ -1,4 +1,4 @@
-from utils.constants import CUP_TALL, CUP_REGULAR, STRAW, SEAL
+from ..utils.constants import CUP_TALL, CUP_REGULAR, STRAW, SEAL
 
 class Recipe:
     """

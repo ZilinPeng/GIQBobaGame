@@ -1,6 +1,6 @@
 import random
 import math
-from models.Employee import Employee
+from game.models.Employee import Employee
 
 # --- Staff subclass with charm trait ---
 class Staff(Employee):

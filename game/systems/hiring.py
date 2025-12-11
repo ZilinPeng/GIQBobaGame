@@ -1,16 +1,19 @@
 import random
-from models.staff import Staff
-from game.config import WAGE_MULTIPLIER
+from game.utils.constants import EMPLOYEE_POOL
 
-NAMES = ["Alex", "Jordan", "Casey", "Riley", "Taylor",
-         "Morgan", "Jamie", "Avery", "Sam", "Devon"]
+def generate_candidates(game, n=3):
+    """
+    Picks n candidates from constant pool.
+    Rules:
+    - Cannot pick employees already hired.
+    - Picks UNIQUE employees each time.
+    """
+    hired_names = {emp.name for emp in game.employees}
 
-def generate_candidates(n=3):
-    candidates = []
-    for _ in range(n):
-        capacity = random.randint(1, 3)
-        charm = random.randint(0, 3)
-        wage_variation = random.randint(-5, 5)
-        wage = capacity * WAGE_MULTIPLIER + charm * 3 + wage_variation
-        candidates.append(Staff(random.choice(NAMES), wage, capacity, charm))
-    return candidates
+    # Filter out already hired employees
+    remaining = [e for e in EMPLOYEE_POOL if e.name not in hired_names]
+
+    # If fewer remaining than needed, reduce n
+    n = min(n, len(remaining))
+
+    return random.sample(remaining, k=n)

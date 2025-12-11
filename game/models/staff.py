@@ -1,5 +1,5 @@
 import random
-from models.Employee import Employee
+from .Employee import Employee
 
 class Staff(Employee):
     """Extended Employee with a charm trait (0-3 scale)."""

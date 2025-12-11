@@ -1,14 +1,14 @@
 from game.config import *
-from models.venue import Stand
-from models.drink import Drink
-from models.customer import Customer
-from utils.constants import *
-from systems.arrivals import generate_arrivals
-from systems.turn_engine import process_turn
-from systems.inventory import *
-from systems.hiring import generate_candidates
-from systems.advertising import calculate_ad_factor
-from models.staff import Staff
+from .models.venue import Stand
+from .models.drink import Drink
+from .models.customer import Customer
+from .utils.constants import *
+from .systems.arrivals import generate_arrivals
+from .systems.turn_engine import process_turn
+from .systems.inventory import *
+from .systems.hiring import generate_candidates
+from .systems.advertising import calculate_ad_factor
+from .models.staff import Staff
 import random
 
 
@@ -21,10 +21,7 @@ class Game:
         self.employees = [Staff("Owner", wage=0, capacity=1, charm=1, reliability=10)]
 
         # --- Inventory ---
-        ingredients = [
-            BOBA_PEARLS, CANE_SUGAR, REFINED_SUGAR, MILK, STRAWBERRY,
-            LYCHEE, FRUIT_TEA, CUP_REGULAR, CUP_TALL, STRAW, SEAL
-        ]
+        ingredients = INGREDIENTS
 
         self.ingredients = ingredients
         self.stock = {
@@ -36,7 +33,7 @@ class Game:
         self.menu = [
             Drink(
                 "Classic Milk Tea",
-                {BOBA_PEARLS: 1, CANE_SUGAR: 1, MILK: 1},
+                {BOBA_PEARLS: 1, CANE_SUGAR: 1, WHOLE_MILK: 1},
                 basePrice=4.50,
                 baseDesirability=5
             )
@@ -69,9 +66,10 @@ class Game:
         """
         Runs ONE turn.
         Returns:
-            served, lostQueue, lostStock, lostPatience
+            served_count, lost_queue, lost_stock, lost_patience, drinks_served_list
         """
-        # 1. Arrivals
+
+        # 1. Customer arrivals
         arrivals = generate_arrivals(self.venue, self.adFactor)
 
         lost_queue = 0
@@ -80,6 +78,7 @@ class Game:
             drink = self.pickDrink(cust)
             if drink is None:
                 continue
+
             cust.desiredDrink = drink
 
             if len(self.venue.line) < self.venue.maxLine:
@@ -87,11 +86,12 @@ class Game:
             else:
                 lost_queue += 1
 
-        # 2. Serve + stock check handled by process_turn
-        served, lostStock, lostPat = process_turn(self)
+        # 2. Serve customers + track drinks served
+        # process_turn MUST return: served_count, lost_stock, lost_patience, drinks_list
+        served_count, lost_stock, lost_patience, drinks_served_list = process_turn(self)
 
-        return served, lost_queue, lostStock, lostPat
-
+        return served_count, lost_queue, lost_stock, lost_patience, drinks_served_list
+    
     # -------------------------------------------------------
     # Multi-Day Simulator (console / backend use)
     # -------------------------------------------------------
