@@ -2,6 +2,7 @@ from game.config import *
 from .models.venue import Stand
 from .models.drink import Drink
 from .models.customer import Customer
+from .models.venue import Stand, Truck, Store
 from .utils.constants import *
 from .systems.arrivals import generate_arrivals
 from .systems.turn_engine import process_turn
@@ -147,3 +148,23 @@ class Game:
         print(f"Closing Cash : ${self.cash:.2f}")
         print(f"Total Revenue: ${total_revenue:.2f}")
         print(f"Total Profit : ${total_profit:.2f}")
+    
+    def get_next_venue_upgrade(self):
+        if isinstance(self.venue, Stand):
+            return Truck(), 300
+        elif isinstance(self.venue, Truck):
+            return Store(), 800
+        else:
+            return None, None
+    
+    def upgrade_venue(self):
+        next_venue, cost = self.get_next_venue_upgrade()
+        if not next_venue:
+            return False, "Already at max venue"
+
+        if self.cash < cost:
+            return False, "Not enough cash"
+
+        self.cash -= cost
+        self.venue = next_venue
+        return True, f"Upgraded to {next_venue.name}"

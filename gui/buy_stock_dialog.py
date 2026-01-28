@@ -1,49 +1,68 @@
 from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QListWidget, QLabel,
-    QMessageBox, QRadioButton, QButtonGroup, QSpinBox, QTableWidget,
-    QTableWidgetItem, QHeaderView
+    QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
+    QMessageBox, QRadioButton, QButtonGroup, QSpinBox,
+    QTableWidget, QTableWidgetItem, QHeaderView,
+    QTreeWidget, QTreeWidgetItem
 )
 from PyQt6.QtCore import pyqtSignal, Qt
+
 from game.systems.inventory import generate_offers
+from game.utils.constants import INGREDIENTS_BY_CATEGORY
 
 
 class BuyStockDialog(QDialog):
-    stock_changed = pyqtSignal(list)   # emits list of textual purchase summaries
+    stock_changed = pyqtSignal(list)
 
     def __init__(self, game):
         super().__init__()
         self.game = game
         self.setWindowTitle("Buy Ingredients")
-        self.setMinimumWidth(520)
+        self.setMinimumWidth(560)
 
         self.cart = []
 
         layout = QVBoxLayout(self)
 
         # -----------------------------------------------------
-        # Ingredient List
+        # INGREDIENT TREE (Categories → Ingredients)
         # -----------------------------------------------------
-        self.list = QListWidget()
-        self.ingredients = self.game.ingredients
-        for ing in self.ingredients:
-            self.list.addItem(ing.name)
-        layout.addWidget(self.list)
+        self.tree = QTreeWidget()
+        self.tree.setHeaderHidden(True)
+        self.tree.setRootIsDecorated(True)
+        layout.addWidget(self.tree)
+
+        self.ingredients = []
+
+        for category, items in INGREDIENTS_BY_CATEGORY.items():
+            # Category node
+            cat_item = QTreeWidgetItem([category])
+            cat_item.setFlags(Qt.ItemFlag.ItemIsEnabled)
+            cat_item.setExpanded(True)
+            cat_item.setBackground(0, Qt.GlobalColor.black)
+            self.tree.addTopLevelItem(cat_item)
+
+            # Ingredient children
+            for ing in items:
+                child = QTreeWidgetItem([ing.name])
+                child.setData(0, Qt.ItemDataRole.UserRole, ing)
+                cat_item.addChild(child)
+                self.ingredients.append(ing)
 
         # -----------------------------------------------------
         # Info Box
         # -----------------------------------------------------
         self.info = QLabel("Select an ingredient.")
         self.info.setStyleSheet("""
-            background: #fdfdfd;
+            background: #ffffff;
             color: black;
             padding: 8px;
             border: 1px solid #e0e0e0;
             border-radius: 5px;
-            """)
+        """)
         layout.addWidget(self.info)
 
         # -----------------------------------------------------
-        # CASH PREVIEW LABEL
+        # CASH PREVIEW
         # -----------------------------------------------------
         self.cash_preview = QLabel(f"Cash Available: ${self.game.cash:.2f}")
         self.cash_preview.setStyleSheet("padding:4px; font-weight:bold;")
@@ -75,7 +94,6 @@ class BuyStockDialog(QDialog):
         self.qty_spin.setMinimum(1)
         self.qty_spin.setMaximum(999)
         qty_row.addWidget(self.qty_spin)
-
         layout.addLayout(qty_row)
 
         # -----------------------------------------------------
@@ -89,8 +107,12 @@ class BuyStockDialog(QDialog):
         # CART TABLE
         # -----------------------------------------------------
         self.cart_table = QTableWidget(0, 4)
-        self.cart_table.setHorizontalHeaderLabels(["Ingredient", "Qty", "Vendor", "Cost"])
-        self.cart_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.cart_table.setHorizontalHeaderLabels(
+            ["Ingredient", "Qty", "Vendor", "Cost"]
+        )
+        self.cart_table.horizontalHeader().setSectionResizeMode(
+            QHeaderView.ResizeMode.Stretch
+        )
         layout.addWidget(self.cart_table)
 
         # -----------------------------------------------------
@@ -104,23 +126,28 @@ class BuyStockDialog(QDialog):
         self.offers = generate_offers(self.ingredients)
 
         # UI events
-        self.list.currentRowChanged.connect(self.update_preview)
+        self.tree.currentItemChanged.connect(self.update_preview)
         self.retail_radio.toggled.connect(self.update_preview)
         self.bulk_radio.toggled.connect(self.update_preview)
         self.qty_spin.valueChanged.connect(self.update_preview)
-
 
     # -----------------------------------------------------------------
     # PREVIEW including Cash Remaining
     # -----------------------------------------------------------------
     def update_preview(self):
-        idx = self.list.currentRow()
-        if idx < 0:
-            self.info.setText("Select an ingredient.")
-            self.cash_preview.setText(f"Cash Available: ${self.game.cash:.2f}")
+        item = self.tree.currentItem()
+        if not item:
             return
 
-        ing = self.ingredients[idx]
+        ing = item.data(0, Qt.ItemDataRole.UserRole)
+        if ing is None:
+            # Category selected
+            self.info.setText("Select an ingredient.")
+            self.cash_preview.setText(
+                f"Cash Available: ${self.game.cash:.2f}"
+            )
+            return
+
         off = self.offers[ing]
 
         bulk_min = off["bulk"]["min"]
@@ -140,12 +167,11 @@ class BuyStockDialog(QDialog):
             cost = bulk_min * bulk_unit * bundles
             vendor = "Bulk"
 
-        # Cash remaining preview
         remaining = self.game.cash - cost
         color = "green" if remaining >= 0 else "red"
 
         self.cash_preview.setText(
-            f"Cash Available: ${self.game.cash:.2f}  →  "
+            f"Cash Available: ${self.game.cash:.2f} → "
             f"<span style='color:{color};'>After Purchase: ${remaining:.2f}</span>"
         )
 
@@ -159,16 +185,18 @@ class BuyStockDialog(QDialog):
             f"<i>Bulk</i>: {bulk_min} units @ ${bulk_unit:.2f}"
         )
 
-
     # -----------------------------------------------------------------
     # Add to cart
     # -----------------------------------------------------------------
     def add_to_cart(self):
-        idx = self.list.currentRow()
-        if idx < 0:
+        item = self.tree.currentItem()
+        if not item:
             return
 
-        ing = self.ingredients[idx]
+        ing = item.data(0, Qt.ItemDataRole.UserRole)
+        if ing is None:
+            return  # category clicked
+
         off = self.offers[ing]
 
         bulk_min = off["bulk"]["min"]
@@ -188,10 +216,8 @@ class BuyStockDialog(QDialog):
             cost = bulk_min * bulk_unit * bundles
             vendor = "Bulk"
 
-        # Add to cart list
         self.cart.append((ing, qty, cost, vendor))
 
-        # Add to cart UI table
         row = self.cart_table.rowCount()
         self.cart_table.insertRow(row)
         self.cart_table.setItem(row, 0, QTableWidgetItem(ing.name))
@@ -199,9 +225,7 @@ class BuyStockDialog(QDialog):
         self.cart_table.setItem(row, 2, QTableWidgetItem(vendor))
         self.cart_table.setItem(row, 3, QTableWidgetItem(f"${cost:.2f}"))
 
-        # Recalculate preview so Cash Available stays accurate
         self.update_preview()
-
 
     # -----------------------------------------------------------------
     # Checkout
@@ -210,42 +234,29 @@ class BuyStockDialog(QDialog):
         if not self.cart:
             self.accept()
             return
-    
+
         total_cost = sum(item[2] for item in self.cart)
-    
-        # ---------------------------------------------------------
-        # FUNDS CHECK
-        # ---------------------------------------------------------
+
         if total_cost > self.game.cash:
             QMessageBox.warning(
                 self,
                 "Insufficient Funds",
                 (
-                    f"Total cost is ${total_cost:.2f}, but you only have "
-                    f"${self.game.cash:.2f} available."
+                    f"Total cost is ${total_cost:.2f}, "
+                    f"but you only have ${self.game.cash:.2f}."
                 )
             )
             return
-    
-        # ---------------------------------------------------------
-        # APPLY PURCHASES
-        # ---------------------------------------------------------
+
         summary = []
-    
+
         for ing, qty, cost, vendor in self.cart:
-            # Deduct cash
             self.game.cash -= cost
-    
-            # Increase stock
             self.game.stock[ing] += qty
-    
-            # Track ingredient cost for the daily summary
             self.game.dailyIngredientCost += cost
-    
-            summary.append(f"Bought {qty} × {ing.name} from {vendor} (${cost:.2f})")
-    
-        # Emit summary back to main window UI
+            summary.append(
+                f"Bought {qty} × {ing.name} from {vendor} (${cost:.2f})"
+            )
+
         self.stock_changed.emit(summary)
-    
-        # Close dialog
         self.accept()

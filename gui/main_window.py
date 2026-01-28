@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import copy
 from typing import Dict
+from collections import defaultdict
 
 from PyQt6.QtWidgets import (
     QWidget,
@@ -47,7 +48,6 @@ class GameThread(QThread):
             "lost_patience": 0,
         }
 
-        # NEW — hourly sales tracking
         hour_sales = {}    # { "09:00": { drink_name: count } }
 
         for t in range(self.turns):
@@ -360,13 +360,29 @@ class MainWindow(QWidget):
         for drink in self.game.menu:
             m_lines.append(f" - {drink.name} (${drink.basePrice:.2f})")
         self.menu_label.setText("<br>".join(m_lines))
+        
+        LOW_STOCK_THRESHOLD = 10
 
         s_lines = ["<b>Stock:</b>"]
-        for ing in self.game.ingredients:
-            qty = self.game.stock.get(ing, 0)
-            s_lines.append(f" - {ing.name}: {qty}")
-        self.stock_label.setText("<br>".join(s_lines))
 
+        by_category = defaultdict(list)
+        for ing in self.game.ingredients:
+            by_category[ing.category].append(ing)
+
+        for category, items in by_category.items():
+            s_lines.append(f"<br><b>── {category} ──</b>")
+
+            for ing in items:
+                qty = self.game.stock.get(ing, 0)
+
+                if qty <= LOW_STOCK_THRESHOLD:
+                    qty_text = f"<span style='color:red; font-weight:bold;'>{qty}</span>"
+                else:
+                    qty_text = str(qty)
+
+                s_lines.append(f"&nbsp;&nbsp;{ing.name}: {qty_text}")
+
+        self.stock_label.setText("<br>".join(s_lines))
     # ---------------- Graph Renderer ----------------
     def render_hourly_sales_chart(self, hour_sales):
         self.ax.clear()
@@ -377,12 +393,14 @@ class MainWindow(QWidget):
             return
 
         hours = sorted(hour_sales.keys())
+
         drink_names = sorted({
-            drink for hour in hour_sales.values()
+            drink
+            for hour in hour_sales.values()
             for drink in hour.keys()
         })
 
-        if len(drink_names) == 0:
+        if not drink_names:
             self.ax.set_title("No Drinks Sold Today")
             self.ax.set_xlabel("Hour of Day")
             self.ax.set_ylabel("Drinks Sold")
@@ -390,22 +408,19 @@ class MainWindow(QWidget):
             self.ax.set_xticklabels(hours)
             self.sales_chart.draw()
             return
-        
+
         x = np.arange(len(hours))
         width = 0.8 / len(drink_names)
 
-        colors = {}
         cmap = plt.get_cmap("tab10")
-        for idx, drink in enumerate(drink_names):
-            colors[drink] = cmap(idx)
+        colors = {drink: cmap(i) for i, drink in enumerate(drink_names)}
 
-        max_height = 0  # track highest bar for padding
+        max_height = 0
 
         for i, drink in enumerate(drink_names):
             yvals = [hour_sales[h].get(drink, 0) for h in hours]
             max_height = max(max_height, max(yvals))
 
-            # Draw bars
             rects = self.ax.bar(
                 x + i * width,
                 yvals,
@@ -415,7 +430,7 @@ class MainWindow(QWidget):
                 zorder=3,
             )
 
-            # Reliable numbers on top using bar_label
+            # Values on bars
             self.ax.bar_label(
                 rects,
                 labels=[str(v) if v > 0 else "" for v in yvals],
@@ -423,11 +438,39 @@ class MainWindow(QWidget):
                 fontsize=9,
                 color="white",
             )
+        total_sales = [sum(hour_sales[h].values()) for h in hours]
+        max_height = max(max_height, max(total_sales))
 
-        # Increase y-limit for label visibility
+        # Center line over grouped bars
+        center_x = x + width * (len(drink_names) - 1) / 2
+
+        self.ax.plot(
+            center_x,
+            total_sales,
+            color="black",
+            marker="o",
+            linewidth=2,
+            label="Total Sales",
+            zorder=5,
+        )
+
+        # Labels on line points
+        for xi, total in zip(center_x, total_sales):
+            if total > 0:
+                self.ax.text(
+                    xi,
+                    total + 0.2,
+                    str(total),
+                    ha="center",
+                    va="bottom",
+                    fontsize=9,
+                    fontweight="bold",
+                    color="black",
+                    zorder=6,
+                )
+
         self.ax.set_ylim(0, max_height * 1.25 + 1)
 
-        # Grid behind bars
         self.ax.grid(axis="y", linestyle="--", alpha=0.3, zorder=0)
 
         self.ax.set_xticks(x)
@@ -436,6 +479,7 @@ class MainWindow(QWidget):
         self.ax.set_xlabel("Hour of Day")
         self.ax.set_ylabel("Drinks Sold")
         self.ax.set_title("Hourly Drink Sales")
+
         self.ax.legend(title="Drink Types")
 
         self.sales_chart.draw()
