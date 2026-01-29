@@ -7,6 +7,7 @@ from gui.hire_dialog import HireDialog
 from gui.buy_stock_dialog import BuyStockDialog
 from gui.create_drink_dialog import CreateDrinkDialog
 from gui.upgrade_venue_dialog import UpgradeVenueDialog
+from gui.loan_dialog import LoanDialog
 
 class Action(QDialog):
     def __init__(self, game):
@@ -21,6 +22,7 @@ class Action(QDialog):
             "fired": [],
             "stock": [],
             "drinks": [],
+            "loans": [],
             "ads": None,
         }
 
@@ -42,11 +44,14 @@ class Action(QDialog):
         done_btn.clicked.connect(self.accept)
         upgrade_btn = QPushButton("Upgrade Venue")
         upgrade_btn.clicked.connect(self.open_upgrade_venue)
+        loan_btn = QPushButton("Take Loan")
+        loan_btn.clicked.connect(self.open_loan)
 
         layout.addWidget(hire_btn)
         layout.addWidget(stock_btn)
         layout.addWidget(drink_btn)
         layout.addWidget(upgrade_btn)
+        layout.addWidget(loan_btn)
 
 
         # --------------------------------------------------
@@ -127,6 +132,9 @@ class Action(QDialog):
         if "venue" in self.changes and self.changes["venue"]:
             txt += "<b>Venue Upgraded:</b> " + ", ".join(self.changes["venue"]) + "<br>"
         
+        if self.changes["loans"]:
+            txt += "<b>Loans Taken:</b> " + ", ".join(self.changes["loans"]) + "<br>"
+        
         if txt.strip() == "<b>Today's Adjustments:</b><br><br>":
             txt += "No changes made."
 
@@ -136,4 +144,14 @@ class Action(QDialog):
         dlg = UpgradeVenueDialog(self.game)
         if dlg.exec():
             self.changes.setdefault("venue", []).append(self.game.venue.name)
+        self.update_summary_box()
+
+    def open_loan(self):
+        dlg = LoanDialog(self.game)
+        before = self.game.cash
+        if dlg.exec():
+            # Record which loan was taken (most recent loan added)
+            # (safe even with multiple loans, since take_loan appends)
+            if self.game.loans:
+                self.changes["loans"].append(self.game.loans[-1].name)
         self.update_summary_box()

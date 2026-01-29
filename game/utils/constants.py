@@ -1,6 +1,6 @@
 from ..models.ingredient import Ingredient
 from game.models.staff import Staff
-
+from game.models.loan import LoanOption
 # name, unit_cost, shelf_life(days), addedDesirability
 # Ingredient Categories
 CAT_MILK       = "Milk"
@@ -140,4 +140,13 @@ EMPLOYEE_POOL = [
     Staff("Avery",    wage=23, capacity=3, charm=3, reliability=4),
     Staff("Sam",      wage=16, capacity=2, charm=1, reliability=6),
     Staff("Devon",    wage=19, capacity=2, charm=3, reliability=9),
+]
+
+# LOAN OPTIONS (per turn)
+LOAN_OPTIONS = [
+    LoanOption("Starter Loan", amount=500, interest_rate=0.015, payback_rate=0.05),
+    LoanOption("Small Business Loan", amount=1200, interest_rate=0.02, payback_rate=0.06),
+    LoanOption("Expansion Loan", amount=3000, interest_rate=0.025, payback_rate=0.07),
+    LoanOption("Growth Loan", amount=6000, interest_rate=0.03, payback_rate=0.08),
+    LoanOption("High-Risk Investor Loan", amount=10000, interest_rate=0.04, payback_rate=0.10),
 ]
